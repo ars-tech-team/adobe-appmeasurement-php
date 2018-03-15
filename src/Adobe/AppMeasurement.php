@@ -1097,28 +1097,6 @@ class AppMeasurement {
     {
         $s =& $this;
 
-        // check for cURL installation
-        if (!function_exists('curl_init')) {
-            $s->log('cURL', 'cURL not installed -- request will not be sent.');
-            return;
-        }
-
-        // init curl (only once)
-        static $ch = NULL;
-        if ($ch == NULL) {
-            $ch = curl_init();
-            curl_setopt($ch, CURLOPT_HEADER, true);
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
-        }
-
-        curl_setopt($ch, CURLOPT_URL, $requestString);
-        curl_setopt($ch, CURLOPT_USERAGENT, $s->userAgent);
-        if ($s->isSetString($s->userAgent)) {
-            $s->log('User-Agent', $s->userAgent);
-        }
-
         // HTTP headers to send
         $sendHeaders = array();
 
@@ -1136,17 +1114,12 @@ class AppMeasurement {
         }
 
         // set additional HTTP headers to send
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $sendHeaders);
-
-        // send request and report on success
-        $response = curl_exec($ch);
-        if (curl_errno($ch)) {
-            $s->log('Transmission Error', curl_error($ch));
-        } else {
-            $s->log('Adobe HTTP Server Response', trim($response));
-        }
-
-        // do not close curl handle (curl_close()) -- so it can be used for subsequent requests within the same process (automatically called at the end of the script)
+        $args = array(
+            'blocking' => false,
+            'user-agent' => $s->userAgent,
+            'headers' => $sendHeaders
+        );
+        $response = wp_remote_get($requestString, $args);
     }
 
     private function getReturnType()
